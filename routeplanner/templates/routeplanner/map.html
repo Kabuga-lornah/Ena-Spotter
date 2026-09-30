@@ -29,12 +29,12 @@
 {% else %}
   <header>
     <h1>{{ plan.start.name }} &rarr; {{ plan.finish.name }}</h1>
-    <p>Vehicle: {{ plan.vehicle.range_miles }} mi range, {{ plan.vehicle.miles_per_gallon }} mpg</p>
+    <p>Vehicle: {{ plan.vehicle.range_miles }} mi range, {{ plan.vehicle.miles_per_gallon }} mpg, starting with {{ plan.summary.starting_fuel_gallons }} gal</p>
     <div class="stats">
       <span>Distance <b>{{ plan.route.distance_miles }} mi</b></span>
       <span>Drive time <b>{{ plan.route.duration_hours }} h</b></span>
       <span>Fuel stops <b>{{ plan.summary.number_of_stops }}</b></span>
-      <span>Fuel <b>{{ plan.summary.total_gallons }} gal</b></span>
+      <span>Fuel bought <b>{{ plan.summary.fuel_purchased_gallons }} gal</b></span>
       <span>Total fuel cost <b>${{ plan.summary.total_fuel_cost }}</b></span>
     </div>
   </header>
@@ -47,8 +47,11 @@
           <strong>{{ s.stop_number }}. {{ s.name }}</strong>
           {{ s.address }}, {{ s.city }}, {{ s.state }}<br>
           Mile {{ s.mile_marker }} &middot; ${{ s.price_per_gallon }}/gal<br>
-          Buy {{ s.gallons }} gal = <b>${{ s.cost }}</b>
+          Buy {{ s.gallons }} gal = <b>${{ s.cost }}</b><br>
+          <em>{{ s.reason }}</em>
         </div>
+      {% empty %}
+        <p>No stops needed: the starting fuel covers the trip.</p>
       {% endfor %}
     </aside>
   </main>

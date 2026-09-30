@@ -98,18 +98,29 @@ class RouteApiTests(DataTestCase):
         data = resp.json()
 
         self.assertEqual(get.call_count, 1)
-        self.assertEqual(data["meta"]["external_api_calls"], 1)
+        self.assertEqual(data["meta"]["routing_api_calls"], 1)
+        self.assertEqual(data["meta"]["geocoding_api_calls"], 0)  # "City, ST" is geocoded offline
         self.assertGreater(data["route"]["distance_miles"], 800)
         stops = data["fuel_stops"]
-        self.assertGreaterEqual(len(stops), 2)  # > 500 miles needs at least a second fill-up
+        summary = data["summary"]
+        self.assertGreaterEqual(len(stops), 1)  # > 500 miles: at least one stop after the starting tank
 
-        # Enough fuel is bought for the whole trip at 10 mpg, and the totals add up.
-        self.assertAlmostEqual(data["summary"]["total_gallons"], data["route"]["distance_miles"] / 10, delta=0.1)
-        self.assertAlmostEqual(data["summary"]["total_fuel_cost"], sum(s["cost"] for s in stops), delta=0.05)
+        # Default: start with a full tank; buy only what the rest of the trip needs.
+        self.assertEqual(summary["starting_fuel_gallons"], 50)
+        self.assertAlmostEqual(summary["fuel_used_gallons"], data["route"]["distance_miles"] / 10, delta=0.1)
+        self.assertAlmostEqual(summary["starting_fuel_gallons"] + summary["fuel_purchased_gallons"],
+                               summary["fuel_used_gallons"], delta=0.1)
+        self.assertAlmostEqual(summary["total_fuel_cost"], sum(s["cost"] for s in stops), delta=0.05)
 
-        # Never more than 500 miles between consecutive fill-ups.
-        markers = [0.0] + [s["mile_marker"] for s in stops[1:]] + [data["route"]["distance_miles"]]
+        # Never more than 500 miles between the start, consecutive stops and the destination.
+        markers = [0.0] + [s["mile_marker"] for s in stops] + [data["route"]["distance_miles"]]
         self.assertTrue(all(b - a <= 500 for a, b in zip(markers, markers[1:])))
+        for s in stops:
+            self.assertTrue(s["reason"])
+            self.assertIn(s["action"], ["fill", "to_next_stop", "to_destination"])
+            self.assertLessEqual(s["fuel_on_arrival_gallons"] + s["gallons"], 50.01)
+        self.assertEqual(stops[0]["distance_from_previous_stop_miles"], stops[0]["mile_marker"])
+        self.assertEqual(stops[-1]["action"], "to_destination")
 
         kinds = [f["properties"]["kind"] for f in data["map"]["features"]]
         self.assertEqual(kinds[:3], ["route", "start", "finish"])
@@ -123,7 +134,7 @@ class RouteApiTests(DataTestCase):
         self.assertEqual(get.call_count, 1)
         self.assertFalse(first["meta"]["cache_hit"])
         self.assertTrue(second["meta"]["cache_hit"])
-        self.assertEqual(second["meta"]["external_api_calls"], 0)
+        self.assertEqual(second["meta"]["routing_api_calls"], 0)
         self.assertEqual(first["summary"], second["summary"])
 
     def test_map_page_reuses_cached_plan(self, get):
@@ -133,6 +144,39 @@ class RouteApiTests(DataTestCase):
         self.assertContains(resp, "leaflet")
         self.assertContains(resp, "Total fuel cost")
         self.assertEqual(get.call_count, 1)
+
+    def test_start_empty(self, get):
+        data = self.client.get("/api/route/", {"start": "Chicago, IL", "finish": "Dallas, TX",
+                                               "start_fuel_gallons": "0"}).json()
+        summary = data["summary"]
+        self.assertEqual(summary["starting_fuel_gallons"], 0)
+        # Starting empty, every gallon for the trip is bought on the way.
+        self.assertAlmostEqual(summary["fuel_purchased_gallons"], summary["fuel_used_gallons"], delta=0.1)
+        self.assertGreaterEqual(len(data["fuel_stops"]), 2)
+        self.assertIn("start_fuel_gallons=0", data["map_url"])
+
+    def test_short_trip_with_full_tank_needs_no_stops(self, get):
+        get.return_value = fake_osrm_response(WAYPOINTS[:3])  # Chicago -> St Louis, < 500 miles
+        data = self.client.get("/api/route/", {"start": "Chicago, IL", "finish": "St. Louis, MO"}).json()
+        self.assertEqual(data["fuel_stops"], [])
+        self.assertEqual(data["summary"]["total_fuel_cost"], 0)
+
+    def test_invalid_options(self, get):
+        for name, value in [("start_fuel_gallons", "-1"), ("start_fuel_gallons", "51"),
+                            ("start_fuel_gallons", "lots"), ("stop_penalty_usd", "-2")]:
+            resp = self.client.get("/api/route/", {"start": "Chicago, IL", "finish": "Dallas, TX", name: value})
+            self.assertEqual(resp.status_code, 400, (name, value))
+            self.assertIn(name, resp.json()["error"])
+        get.assert_not_called()
+
+    def test_stop_penalty_option(self, get):
+        base = {"start": "Chicago, IL", "finish": "Dallas, TX", "start_fuel_gallons": "0"}
+        cheapest = self.client.get("/api/route/", base).json()
+        fewer = self.client.get("/api/route/", {**base, "stop_penalty_usd": "5"}).json()
+        self.assertEqual(fewer["assumptions"]["stop_penalty_usd"], 5)
+        self.assertLessEqual(fewer["summary"]["number_of_stops"], cheapest["summary"]["number_of_stops"])
+        self.assertGreaterEqual(fewer["summary"]["total_fuel_cost"], cheapest["summary"]["total_fuel_cost"])
+        self.assertIn("stop_penalty_usd=5", fewer["map_url"])
 
     def test_missing_params(self, get):
         resp = self.client.get("/api/route/", {"start": "Chicago, IL"})

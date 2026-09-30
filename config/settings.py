@@ -71,9 +71,15 @@ HTTP_TIMEOUT_SECONDS = float(os.environ.get("HTTP_TIMEOUT_SECONDS", "15"))
 
 VEHICLE_RANGE_MILES = 500
 VEHICLE_MPG = 10
-# How far off the route (straight line) a station may be to count as "on the way".
+# Fuel in the tank at the start, in gallons (tank = 50). Overridable per request with
+# ?start_fuel_gallons=...; 0 means "start empty and fill up near the start".
+VEHICLE_START_FUEL_GALLONS = float(os.environ.get("VEHICLE_START_FUEL_GALLONS", "50"))
+
+# Assumption, not from the brief: how far off the route (straight line) a driver will go
+# for fuel. Stations are placed at their town centre, so this also absorbs that error.
 STATION_CORRIDOR_MILES = float(os.environ.get("STATION_CORRIDOR_MILES", "10"))
-# The vehicle starts empty and fills up at the cheapest station this close to the start.
+# Only used when starting empty: fill up at the cheapest station this close to the start.
 START_FILL_SEARCH_MILES = float(os.environ.get("START_FILL_SEARCH_MILES", "25"))
-# "Optimal mostly means cost effective": an extra stop must save at least this much (USD).
-FUEL_STOP_PENALTY_USD = float(os.environ.get("FUEL_STOP_PENALTY_USD", "2.0"))
+# Optional dollars-per-stop penalty to skip stops that save only cents. Default 0: the
+# plan minimises fuel cost, and equal-cost plans are decided by fewer stops.
+FUEL_STOP_PENALTY_USD = float(os.environ.get("FUEL_STOP_PENALTY_USD", "0"))
