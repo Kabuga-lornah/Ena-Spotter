@@ -1,3 +1,13 @@
+"""Tests for the fuel optimiser (services/optimizer.py).
+
+Small hand-made trips check specific behaviours (full tank, empty tank, destination
+handling, impossible trips). The last test is the strongest: it builds 1,000 random
+trips and checks that the optimiser's cost equals the true minimum found by a slow
+brute-force search over every possible fuel level.
+
+In these tests mpg=1, so "miles of fuel" and "gallons" are the same number.
+"""
+
 import random
 from functools import lru_cache
 

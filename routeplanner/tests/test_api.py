@@ -1,3 +1,13 @@
+"""End-to-end tests of the API, geocoding and station matching.
+
+Run with:  python manage.py test
+
+The real OSRM routing service is never called: `fake_osrm_response()` builds a
+realistic Chicago -> Dallas route through real towns, and `mock.patch` makes the
+code receive it instead of making a network request. So the tests are fast and
+work offline. The real fuel CSV is loaded once for the whole test class.
+"""
+
 from unittest import mock
 
 from django.core.cache import cache
@@ -39,6 +49,8 @@ def fake_osrm_response(waypoints=WAYPOINTS):
 
 
 class DataTestCase(TestCase):
+    """Base class: loads the real stations once, and starts every test with empty caches."""
+
     @classmethod
     def setUpTestData(cls):
         call_command("load_fuel_stations", stdout=mock.Mock())
