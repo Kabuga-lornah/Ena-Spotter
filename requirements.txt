@@ -1,0 +1,3 @@
+Django==6.1.1
+requests>=2.32
+zipcodes>=3.0

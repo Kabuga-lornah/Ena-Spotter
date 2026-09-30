@@ -1,0 +1,80 @@
+{
+  "info": {
+    "name": "Fuel Route API",
+    "description": "Route + cheapest fuel stops between two US locations (500 mi range, 10 mpg).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [{ "key": "baseUrl", "value": "http://127.0.0.1:8000" }],
+  "item": [
+    {
+      "name": "Plan route (GET, City, ST)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/route/?start=New York, NY&finish=Los Angeles, CA",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "route", ""],
+          "query": [
+            { "key": "start", "value": "New York, NY" },
+            { "key": "finish", "value": "Los Angeles, CA" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Plan route (POST JSON)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"Chicago, IL\",\n  \"finish\": \"Houston, TX\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/route/", "host": ["{{baseUrl}}"], "path": ["api", "route", ""] }
+      }
+    },
+    {
+      "name": "Plan route (lat,lon + address)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"47.6062,-122.3321\",\n  \"finish\": \"1600 Pennsylvania Ave NW, Washington, DC\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/route/", "host": ["{{baseUrl}}"], "path": ["api", "route", ""] }
+      }
+    },
+    {
+      "name": "Map page (open in browser)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/route/map/?start=New York, NY&finish=Los Angeles, CA",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "route", "map", ""],
+          "query": [
+            { "key": "start", "value": "New York, NY" },
+            { "key": "finish", "value": "Los Angeles, CA" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Error: location outside USA",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/route/?start=Toronto, ON&finish=Dallas, TX",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "route", ""],
+          "query": [
+            { "key": "start", "value": "Toronto, ON" },
+            { "key": "finish", "value": "Dallas, TX" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/health/", "host": ["{{baseUrl}}"], "path": ["api", "health", ""] }
+      }
+    }
+  ]
+}
