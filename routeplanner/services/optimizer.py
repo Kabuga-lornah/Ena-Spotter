@@ -83,14 +83,14 @@ def plan_fuel_stops(
 
     Raises NoFuelPlan if the trip is impossible (a gap between stations > range).
     """
-    # --- Easy cases ---------------------------------------------------------------
+    # --- Easy cases 
     if total_miles <= 0:
         return []
     start_fuel_miles = min(max(start_fuel_miles, 0.0), range_miles)  # clamp to 0..tank size
     if total_miles <= start_fuel_miles + EPS:
         return []  # the starting fuel covers the whole trip
 
-    # --- Build the list of "nodes" (points along the route) -----------------------
+    # --- Build the list of "nodes" (points along the route) 
     # Stations past the destination are useless; sort the rest by mile, cheapest first.
     candidates = sorted((c for c in candidates if c.mile < total_miles), key=lambda c: (c.mile, c.price))
     # Only the cheapest station at each mile marker can ever be worth using.
@@ -130,7 +130,7 @@ def plan_fuel_stops(
             return start_fuel_miles - pos[i]  # starting fuel minus the miles driven so far
         return R - (pos[i] - pos[key])  # full tank at node `key` minus the miles since then
 
-    # --- The dynamic programme ------------------------------------------------------
+    # --- The dynamic programme 
     # best[i][key] = (objective, stops, back-pointer); back = (prev_node, prev_key, bought, action).
     #   objective = dollars spent so far (+ stop penalties), stops = number of stops so far,
     #   back-pointer = how we got here (used at the end to rebuild the plan).

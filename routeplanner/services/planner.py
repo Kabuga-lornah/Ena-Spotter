@@ -73,9 +73,9 @@ def plan_trip(start_query: str, finish_query: str, start_fuel_gallons: float | N
     scale = route.distance_miles / miles[-1] if miles[-1] > 0 else 1.0
     miles = [m * scale for m in miles]
 
-    # --- Step 3: which stations are close enough to the route? --------------------------
+    # --- Step 3: which stations are close enough to the route? 
     candidates = stations_along_route(coords, miles, settings.STATION_CORRIDOR_MILES)
-    # --- Step 4: choose the cheapest stops ---------------------------------------------
+    # --- Step 4: choose the cheapest stops 
     stops = plan_fuel_stops(
         candidates,
         total_miles=route.distance_miles,
@@ -86,7 +86,7 @@ def plan_trip(start_query: str, finish_query: str, start_fuel_gallons: float | N
         stop_penalty=stop_penalty_usd,
     )
 
-    # --- Step 5: build the response ----------------------------------------------------
+    #  Step 5: build the response 
     purchased_gallons = sum(s.gallons for s in stops)
     total_cost = sum(s.cost for s in stops)
     used_gallons = route.distance_miles / mpg  # fuel burned over the whole trip
